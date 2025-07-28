@@ -28,7 +28,11 @@ import {
   Minus,
   Hand, 
   Sparkles,
-  X
+  X,
+  Percent,
+  Calculator,
+  Hash,
+  Sigma
 } from "lucide-react";
 
 // Define types for drawing instance methods
@@ -95,6 +99,17 @@ export default function Drawing({ roomId }: { roomId: string }) {
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [showCollaboration, setShowCollaboration] = useState(false);
   const [showAIFeatures, setShowAIFeatures] = useState(false);
+  
+  // Percentage and Math features state
+  const [showPercentagePanel, setShowPercentagePanel] = useState(false);
+  const [showMathPanel, setShowMathPanel] = useState(false);
+  const [showCalculatorPanel, setShowCalculatorPanel] = useState(false);
+  const [percentageValue, setPercentageValue] = useState('');
+  const [mathExpression, setMathExpression] = useState('');
+  const [calculatorExpression, setCalculatorExpression] = useState('');
+  const [percentageResult, setPercentageResult] = useState('');
+  const [mathResult, setMathResult] = useState('');
+  const [calculatorResult, setCalculatorResult] = useState('');
 
   // Set mounted state to prevent hydration issues
   useEffect(() => {
@@ -295,6 +310,40 @@ export default function Drawing({ roomId }: { roomId: string }) {
 
   const handleToolSelect = useCallback((toolType: string) => {
     setSelectedTool(toolType);
+    
+    // Handle special tools
+    if (toolType === 'percentage') {
+      setShowPercentagePanel(true);
+      setShowMathPanel(false);
+      setShowCalculatorPanel(false);
+      return;
+    }
+    
+    if (toolType === 'math') {
+      setShowMathPanel(true);
+      setShowPercentagePanel(false);
+      setShowCalculatorPanel(false);
+      return;
+    }
+    
+    if (toolType === 'calculator') {
+      setShowCalculatorPanel(true);
+      setShowPercentagePanel(false);
+      setShowMathPanel(false);
+      return;
+    }
+    
+    if (toolType === 'number') {
+      // For number tool, we'll add a simple number input
+      const number = prompt('Enter a number:');
+      if (number && drawingInstanceRef.current) {
+        // Add number to canvas
+        console.log('Adding number to canvas:', number);
+      }
+      return;
+    }
+    
+    // For regular tools, use the drawing instance
     drawingInstanceRef.current?.selectTool?.(toolType);
   }, []);
 
@@ -466,6 +515,70 @@ export default function Drawing({ roomId }: { roomId: string }) {
   const handleAIFeatureToggle = (featureId: string) => {
     console.log(`AI Feature toggled: ${featureId}`);
     // Implement AI feature logic here
+  };
+
+  // Percentage calculation handler
+  const handlePercentageCalculate = () => {
+    if (percentageValue) {
+      try {
+        const value = parseFloat(percentageValue);
+        if (!isNaN(value)) {
+          const result = `${value}% = ${(value / 100).toFixed(4)}`;
+          setPercentageResult(result);
+          
+          // Add to LaTeX expressions for display
+          const newExpression = {
+            id: `percentage-${Date.now()}`,
+            content: `\\text{${result}}`
+          };
+          setLatexExpression(prev => [...prev, newExpression]);
+        }
+      } catch (error) {
+        setPercentageResult('Invalid input');
+      }
+    }
+  };
+
+  // Math expression calculation handler
+  const handleMathCalculate = () => {
+    if (mathExpression) {
+      try {
+        // Basic math expression evaluation (be careful with eval in production)
+        const sanitizedExpression = mathExpression.replace(/[^0-9+\-*/().]/g, '');
+        const result = eval(sanitizedExpression);
+        setMathResult(result.toString());
+        
+        // Add to LaTeX expressions for display
+        const newExpression = {
+          id: `math-${Date.now()}`,
+          content: `${mathExpression} = ${result}`
+        };
+        setLatexExpression(prev => [...prev, newExpression]);
+      } catch (error) {
+        setMathResult('Invalid expression');
+      }
+    }
+  };
+
+  // Calculator expression handler
+  const handleCalculatorCalculate = () => {
+    if (calculatorExpression) {
+      try {
+        // Basic calculator evaluation
+        const sanitizedExpression = calculatorExpression.replace(/[^0-9+\-*/().]/g, '');
+        const result = eval(sanitizedExpression);
+        setCalculatorResult(result.toString());
+        
+        // Add to LaTeX expressions for display
+        const newExpression = {
+          id: `calc-${Date.now()}`,
+          content: `${calculatorExpression} = ${result}`
+        };
+        setLatexExpression(prev => [...prev, newExpression]);
+      } catch (error) {
+        setCalculatorResult('Invalid expression');
+      }
+    }
   };
 
   if (!mounted || !dimensions.width || !dimensions.height) return null;
@@ -1098,6 +1211,129 @@ export default function Drawing({ roomId }: { roomId: string }) {
         </div>
       )}
 
+      {/* Percentage Panel */}
+      {showPercentagePanel && (
+        <div className="fixed top-24 left-1/2 transform -translate-x-1/2 z-50 bg-black/90 backdrop-blur-sm rounded-lg p-4 min-w-[300px] max-w-[400px]">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-white font-medium flex items-center gap-2">
+              <Percent className="w-4 h-4" />
+              Percentage Calculator
+            </h3>
+            <button
+              onClick={() => setShowPercentagePanel(false)}
+              className="text-gray-400 hover:text-white"
+            >
+              ✕
+            </button>
+          </div>
+          <div className="space-y-3">
+            <div>
+              <label className="block text-sm text-gray-300 mb-1">Enter Percentage Value</label>
+              <input
+                type="number"
+                value={percentageValue}
+                onChange={(e) => setPercentageValue(e.target.value)}
+                placeholder="e.g., 25"
+                className="w-full px-3 py-2 bg-gray-800/50 border border-gray-600/50 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-purple-500"
+              />
+            </div>
+            <button
+              onClick={handlePercentageCalculate}
+              className="w-full px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
+            >
+              Calculate
+            </button>
+            {percentageResult && (
+              <div className="p-3 bg-gray-800/50 rounded-lg">
+                <p className="text-green-400 font-mono text-sm">{percentageResult}</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Math Panel */}
+      {showMathPanel && (
+        <div className="fixed top-24 left-1/2 transform -translate-x-1/2 z-50 bg-black/90 backdrop-blur-sm rounded-lg p-4 min-w-[300px] max-w-[400px]">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-white font-medium flex items-center gap-2">
+              <Sigma className="w-4 h-4" />
+              Math Expression Calculator
+            </h3>
+            <button
+              onClick={() => setShowMathPanel(false)}
+              className="text-gray-400 hover:text-white"
+            >
+              ✕
+            </button>
+          </div>
+          <div className="space-y-3">
+            <div>
+              <label className="block text-sm text-gray-300 mb-1">Enter Math Expression</label>
+              <input
+                type="text"
+                value={mathExpression}
+                onChange={(e) => setMathExpression(e.target.value)}
+                placeholder="e.g., 2 + 3 * 4"
+                className="w-full px-3 py-2 bg-gray-800/50 border border-gray-600/50 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-purple-500"
+              />
+            </div>
+            <button
+              onClick={handleMathCalculate}
+              className="w-full px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
+            >
+              Calculate
+            </button>
+            {mathResult && (
+              <div className="p-3 bg-gray-800/50 rounded-lg">
+                <p className="text-green-400 font-mono text-sm">{mathResult}</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Calculator Panel */}
+      {showCalculatorPanel && (
+        <div className="fixed top-24 left-1/2 transform -translate-x-1/2 z-50 bg-black/90 backdrop-blur-sm rounded-lg p-4 min-w-[300px] max-w-[400px]">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-white font-medium flex items-center gap-2">
+              <Calculator className="w-4 h-4" />
+              Advanced Calculator
+            </h3>
+            <button
+              onClick={() => setShowCalculatorPanel(false)}
+              className="text-gray-400 hover:text-white"
+            >
+              ✕
+            </button>
+          </div>
+          <div className="space-y-3">
+            <div>
+              <label className="block text-sm text-gray-300 mb-1">Enter Expression</label>
+              <input
+                type="text"
+                value={calculatorExpression}
+                onChange={(e) => setCalculatorExpression(e.target.value)}
+                placeholder="e.g., (5 + 3) * 2"
+                className="w-full px-3 py-2 bg-gray-800/50 border border-gray-600/50 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-purple-500"
+              />
+            </div>
+            <button
+              onClick={handleCalculatorCalculate}
+              className="w-full px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
+            >
+              Calculate
+            </button>
+            {calculatorResult && (
+              <div className="p-3 bg-gray-800/50 rounded-lg">
+                <p className="text-green-400 font-mono text-sm">{calculatorResult}</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* AI Features Panel */}
       <AIFeatures
         isVisible={showAIFeatures}
@@ -1128,6 +1364,10 @@ const tools = [
   { type: "arrow", label: "Arrow", icon: <ArrowRight /> },
   { type: "line", label: "Line", icon: <Minus /> },
   { type: "text", label: "Text", icon: <Type /> },
+  { type: "percentage", label: "Percentage", icon: <Percent /> },
+  { type: "math", label: "Math", icon: <Sigma /> },
+  { type: "calculator", label: "Calculator", icon: <Calculator /> },
+  { type: "number", label: "Number", icon: <Hash /> },
   { type: "eraser", label: "Eraser", icon: <Eraser /> },
   { type: "select", label: "Select", icon: <MousePointer /> },
 ];
@@ -1147,6 +1387,8 @@ const bgColors = [
 const templates = [
   { name: "Blank Canvas", description: "Start with a clean slate" },
   { name: "Math Worksheet", description: "Perfect for equations and formulas" },
+  { name: "Percentage Calculator", description: "Calculate percentages and ratios" },
+  { name: "Scientific Calculator", description: "Advanced mathematical operations" },
   { name: "Flowchart", description: "Create diagrams and processes" },
   { name: "Mind Map", description: "Organize ideas and concepts" },
   { name: "Wireframe", description: "Design layouts and interfaces" }
