@@ -7,10 +7,12 @@ export const WobbleCard = ({
   children,
   containerClassName,
   className,
+  onClick,
 }: {
   children: React.ReactNode;
   containerClassName?: string;
   className?: string;
+  onClick?: () => void;
 }) => {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [isHovering, setIsHovering] = useState(false);
@@ -22,6 +24,13 @@ export const WobbleCard = ({
     const y = (clientY - (rect.top + rect.height / 2)) / 20;
     setMousePosition({ x, y });
   };
+
+  const handleClick = () => {
+    if (onClick) {
+      onClick();
+    }
+  };
+
   return (
     <motion.section
       onMouseMove={handleMouseMove}
@@ -30,6 +39,7 @@ export const WobbleCard = ({
         setIsHovering(false);
         setMousePosition({ x: 0, y: 0 });
       }}
+      onClick={handleClick}
       style={{
         transform: isHovering
           ? `translate3d(${mousePosition.x}px, ${mousePosition.y}px, 0) scale3d(1, 1, 1)`
