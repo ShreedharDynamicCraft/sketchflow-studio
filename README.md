@@ -1,5 +1,7 @@
 # SketchFlow Studio - AI-Powered Drawing Canvas
 
+**Created by Shreedhar Anand**
+
 A modern, AI-driven drawing application built with Next.js, featuring real-time canvas interactions, advanced drawing capabilities, and intelligent collaboration tools.
 
 ## ✨ Features
@@ -145,4 +147,3 @@ This project is private and proprietary.
 ---
 
 **Built with ❤️ using Next.js, TypeScript, and AI**
-# sketchflow-studio
